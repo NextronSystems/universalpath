@@ -1,0 +1,152 @@
+diff --git a/unix/path_lite.go b/unix/path_lite.go
+index 4a37298..c15d1ed 100644
+--- a/unix/path_lite.go
++++ b/unix/path_lite.go
+@@ -2,17 +2,13 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// Package filepathlite implements a subset of path/filepath,
+-// only using packages which may be imported by "os".
+-//
+-// Tests for these functions are in path/filepath.
+-package filepathlite
++package unix
+ 
+ import (
+ 	"errors"
+-	"internal/stringslite"
+ 	"io/fs"
+ 	"slices"
++	"strings"
+ )
+ 
+ var errInvalidPath = errors.New("invalid path")
+@@ -149,7 +145,7 @@ func unixIsLocal(path string) bool {
+ 	hasDots := false
+ 	for p := path; p != ""; {
+ 		var part string
+-		part, p, _ = stringslite.Cut(p, "/")
++		part, p, _ = strings.Cut(p, "/")
+ 		if part == "." || part == ".." {
+ 			hasDots = true
+ 			break
+@@ -158,7 +154,7 @@ func unixIsLocal(path string) bool {
+ 	if hasDots {
+ 		path = Clean(path)
+ 	}
+-	if path == ".." || stringslite.HasPrefix(path, "../") {
++	if path == ".." || strings.HasPrefix(path, "../") {
+ 		return false
+ 	}
+ 	return true
+@@ -189,7 +185,7 @@ func FromSlash(path string) string {
+ }
+ 
+ func replaceStringByte(s string, old, new byte) string {
+-	if stringslite.IndexByte(s, old) == -1 {
++	if strings.IndexByte(s, old) == -1 {
+ 		return s
+ 	}
+ 	n := []byte(s)
+diff --git a/unix/path_lite_nonwindows.go b/unix/path_lite_nonwindows.go
+index c9c4c02..497acf3 100644
+--- a/unix/path_lite_nonwindows.go
++++ b/unix/path_lite_nonwindows.go
+@@ -2,8 +2,6 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-//go:build !windows
+-
+-package filepathlite
++package unix
+ 
+ func postClean(out *lazybuf) {}
+diff --git a/unix/path_lite_unix.go b/unix/path_lite_unix.go
+index e31f1ae..21244f3 100644
+--- a/unix/path_lite_unix.go
++++ b/unix/path_lite_unix.go
+@@ -2,13 +2,10 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-//go:build unix || (js && wasm) || wasip1
+-
+-package filepathlite
++package unix
+ 
+ import (
+-	"internal/bytealg"
+-	"internal/stringslite"
++	"strings"
+ )
+ 
+ const (
+@@ -25,7 +22,7 @@ func isLocal(path string) bool {
+ }
+ 
+ func localize(path string) (string, error) {
+-	if bytealg.IndexByteString(path, 0) >= 0 {
++	if strings.IndexByte(path, 0) >= 0 {
+ 		return "", errInvalidPath
+ 	}
+ 	return path, nil
+@@ -33,7 +30,7 @@ func localize(path string) (string, error) {
+ 
+ // IsAbs reports whether the path is absolute.
+ func IsAbs(path string) bool {
+-	return stringslite.HasPrefix(path, "/")
++	return strings.HasPrefix(path, "/")
+ }
+ 
+ // volumeNameLen returns length of the leading volume name on Windows.
+diff --git a/unix/path_unix.go b/unix/path_unix.go
+index 6bc974d..032945b 100644
+--- a/unix/path_unix.go
++++ b/unix/path_unix.go
+@@ -2,34 +2,13 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-//go:build unix || (js && wasm) || wasip1
+-
+-package filepath
++package unix
+ 
+ import (
+ 	"strings"
+ )
+ 
+-// HasPrefix exists for historical compatibility and should not be used.
+-//
+-// Deprecated: HasPrefix does not respect path boundaries and
+-// does not ignore case when required.
+-func HasPrefix(p, prefix string) bool {
+-	return strings.HasPrefix(p, prefix)
+-}
+-
+-func splitList(path string) []string {
+-	if path == "" {
+-		return []string{}
+-	}
+-	return strings.Split(path, string(ListSeparator))
+-}
+-
+-func abs(path string) (string, error) {
+-	return unixAbs(path)
+-}
+-
+-func join(elem []string) string {
++func Join(elem ...string) string {
+ 	// If there's a bug here, fix the logic in ./path_plan9.go too.
+ 	for i, e := range elem {
+ 		if e != "" {
+@@ -38,7 +17,3 @@ func join(elem []string) string {
+ 	}
+ 	return ""
+ }
+-
+-func sameWord(a, b string) bool {
+-	return a == b
+-}
