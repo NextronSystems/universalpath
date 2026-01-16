@@ -1,6 +1,8 @@
 package universalpath
 
 import (
+	"strings"
+
 	"github.com/NextronSystems/universalpath/unix"
 	"github.com/NextronSystems/universalpath/windows"
 )
@@ -82,4 +84,11 @@ func (p Style) IsAbs(s string) bool {
 	} else {
 		return windows.IsAbs(s)
 	}
+}
+
+func (p Style) To(other Style, s string) string {
+	if p == other {
+		return s
+	}
+	return strings.ReplaceAll(s, p.Separator(), other.Separator())
 }
